@@ -19,7 +19,7 @@ public class WebServerMain {
 	private static final Logger LOG = LoggerFactory
 			.getLogger(WebServerMain.class);
 
-	private static final int SERVER_PORT = 8000;
+	private static final int SERVER_PORT = 1234;
 
 	public static void main(final String[] args) throws IOException {
 		
