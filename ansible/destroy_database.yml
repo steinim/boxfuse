@@ -1,0 +1,20 @@
+---
+- hosts: localhost
+  gather_facts: no
+  vars:
+    ansible_python_interpreter: "/usr/bin/env python"
+  tasks:
+    - rds:
+        command: delete
+        instance_name: "{{db_name}}"
+        aws_access_key: "{{aws_access_key}}"
+        aws_secret_key: "{{aws_secret_key}}"
+        region: "{{aws_region}}"
+    - ec2_group:
+        name: boxfuse_db_security_group
+        description: boxfuse db security group
+        vpc_id: "{{vpc_id}}"
+        region: "{{aws_region}}"
+        aws_access_key: "{{aws_access_key}}"
+        aws_secret_key: "{{aws_secret_key}}"
+        state: absent

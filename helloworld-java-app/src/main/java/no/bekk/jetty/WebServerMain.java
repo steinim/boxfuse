@@ -1,29 +1,25 @@
 package no.bekk.jetty;
 
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.io.InputStream;
-import java.util.Map.Entry;
-import java.util.Properties;
-
+import com.sun.jersey.spi.container.servlet.ServletContainer;
 import org.eclipse.jetty.server.Server;
 import org.eclipse.jetty.servlet.ServletContextHandler;
 import org.eclipse.jetty.servlet.ServletHolder;
+import org.flywaydb.core.Flyway;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import com.sun.jersey.spi.container.servlet.ServletContainer;
+import java.io.IOException;
 
 public class WebServerMain {
 
-	private static final Logger LOG = LoggerFactory
-			.getLogger(WebServerMain.class);
-
+	private static final Logger LOG = LoggerFactory.getLogger(WebServerMain.class);
 	private static final int SERVER_PORT = 1234;
 
 	public static void main(final String[] args) throws IOException {
-		
-		loadProperties();
+
+        Flyway flyway = new Flyway();
+        flyway.setDataSource(System.getenv("BOXFUSE_DATABASE_URL"), System.getenv("BOXFUSE_DATABASE_USER"), System.getenv("BOXFUSE_DATABASE_PASSWORD"));
+        flyway.migrate();
 
 		Server server = new Server(SERVER_PORT);
 		ServletContextHandler context = new ServletContextHandler(ServletContextHandler.SESSIONS);
@@ -40,28 +36,5 @@ public class WebServerMain {
 		} catch (Exception e) {
 			LOG.error("Could not start server!", e);
 		}
-	}
-
-	private static void loadProperties() {
-		Properties props = new Properties();
-		InputStream input = null;
-		try {
-			input = new FileInputStream("/home/devops/config.properties");
-			props.load(input);
-			for (Entry<Object, Object> e : props.entrySet()) {
-				System.setProperty(e.getKey().toString(), e.getValue().toString());
-			}
-		} catch (IOException ex) {
-			ex.printStackTrace();
-		} finally {
-			if (input != null) {
-				try {
-					input.close();
-				} catch (IOException e) {
-					e.printStackTrace();
-				}
-			}
-		}
-
 	}
 }

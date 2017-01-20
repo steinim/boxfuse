@@ -18,7 +18,7 @@
             cidr_ip: 0.0.0.0/0
       register: security_group
     - debug:
-        msg: "security group id: {{security_group.group_id}}"
+        msg: "{{security_group.group_id}}"
     - rds:
         publicly_accessible: yes
         command: create
@@ -46,13 +46,13 @@
     - debug:
         msg: "{{item}}"
       with_items:
-        - "id: {{rds.instance.vpc_security_groups}}"
-        - "endpoint: {{rds.instance.endpoint}}"
-        - "port: {{rds.instance.port}}"
-        - "status:  {{rds.instance.status}}"
-        - "instance_type: {{rds.instance.instance_type}}"
-        - "vpc_security_groups: {{rds.instance.vpc_security_groups}}"
-        - "availability_zone: {{rds.instance.availability_zone}}"
+        - "'id: {{rds.instance.vpc_security_groups}}'"
+        - "'endpoint: {{rds.instance.endpoint}}'"
+        - "'port: {{rds.instance.port}}'"
+        - "'status:  {{rds.instance.status}}'"
+        - "'instance_type: {{rds.instance.instance_type}}'"
+        - "'vpc_security_groups: {{rds.instance.vpc_security_groups}}'"
+        - "'availability_zone: {{rds.instance.availability_zone}}'"
     - pip:
         name: MySQL-python
     - homebrew: name=mysql

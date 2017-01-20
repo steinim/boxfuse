@@ -1,10 +1,10 @@
 ---
 db_name: hello
 db_user: hello
-db_user_password: hello
-db_root_password: I4mSuperGravi7yyy
-aws_access_key: AKIAIPR4H6ITPDZCNAYQ
-aws_secret_key: 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
+db_user_password: "{{ lookup('ini', 'db.user.password type=properties file=secret.properties') }}"
+db_root_password: "{{ lookup('ini', 'db.root.password type=properties file=secret.properties') }}"
+aws_access_key: "{{ lookup('env','AWS_ACCESS_KEY_ID') }}"
+aws_secret_key: "{{ lookup('env','AWS_SECRET_ACCESS_KEY') }}"
 aws_region: eu-central-1
-vpc_id: vpc-8f972ce6
+vpc_id: "{{ lookup('ini', 'vpc.id type=properties file=secret.properties') }}"
 ansible_ssh_common_args: '-o UserKnownHostsFile=/dev/null -o StrictHostKeyChecking=no -o ControlMaster=auto -o ControlPersist=1800s'
