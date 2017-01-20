@@ -1,0 +1,74 @@
+---
+- hosts: localhost
+  gather_facts: no
+  vars:
+    ansible_python_interpreter: "/usr/bin/env python"
+  tasks:
+    - ec2_group:
+        name: boxfuse_db_security_group
+        description: boxfuse db security group
+        vpc_id: "{{vpc_id}}"
+        region: "{{aws_region}}"
+        aws_access_key: "{{aws_access_key}}"
+        aws_secret_key: "{{aws_secret_key}}"
+        rules:
+          - proto: tcp
+            from_port: 3306
+            to_port: 3306
+            cidr_ip: 0.0.0.0/0
+      register: security_group
+    - debug:
+        msg: "security group id: {{security_group.group_id}}"
+    - rds:
+        publicly_accessible: yes
+        command: create
+        instance_name: "{{db_name}}"
+        db_engine: MySQL
+        size: 5
+        engine_version: 5.7.16
+        instance_type: db.t2.micro
+        username: root
+        password: "{{db_root_password}}"
+        aws_access_key: "{{aws_access_key}}"
+        aws_secret_key: "{{aws_secret_key}}"
+        region: "{{aws_region}}"
+        vpc_security_groups: "{{security_group.group_id}}"
+        tags:
+          Environment: boxfuse
+          Application: helloworld-java-app
+    - rds:
+        command: facts
+        instance_name: "{{db_name}}"
+        aws_access_key: "{{aws_access_key}}"
+        aws_secret_key: "{{aws_secret_key}}"
+        region: "{{aws_region}}"
+      register: rds
+    - debug:
+        msg: "{{item}}"
+      with_items:
+        - "id: {{rds.instance.vpc_security_groups}}"
+        - "endpoint: {{rds.instance.endpoint}}"
+        - "port: {{rds.instance.port}}"
+        - "status:  {{rds.instance.status}}"
+        - "instance_type: {{rds.instance.instance_type}}"
+        - "vpc_security_groups: {{rds.instance.vpc_security_groups}}"
+        - "availability_zone: {{rds.instance.availability_zone}}"
+    - pip:
+        name: MySQL-python
+    - homebrew: name=mysql
+    - mysql_db:
+        name: "{{db_name}}"
+        login_host: "{{rds.instance.endpoint}}"
+        login_user: root
+        login_password: "{{db_root_password}}"
+      when: rds.instance.status == "available"
+    - mysql_user:
+        name: "{{db_user}}"
+        password: "{{db_user_password}}"
+        host: "%"
+        priv: "{{db_name}}.*:ALL"
+        state: present
+        login_user: root
+        login_password: "{{db_root_password}}"
+        login_host: "{{rds.instance.endpoint}}"
+      when: rds.instance.status == "available"
