@@ -21,7 +21,7 @@ public class DbAccess {
 	
 
 	public DbAccess() {
-		String dbUrl =  DATABASE_URL + "&user="+ DATABASE_USER + "&password=" + DATABASE_PASSWORD;
+		String dbUrl =  DATABASE_URL + "?ssl=true&user="+ DATABASE_USER + "&password=" + DATABASE_PASSWORD;
 		try {
 			connect = DriverManager.getConnection(dbUrl);
 			LOG.info("Connected to " + dbUrl);
@@ -31,7 +31,7 @@ public class DbAccess {
 	}
 
 	public String sayHello() throws Exception {
-		String query = "select * from helloworld_java_app.messages";
+		String query = "select * from messages";
 		try {
 			statement = connect.createStatement();
 			LOG.info("Running query: " + query);
