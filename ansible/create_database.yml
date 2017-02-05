@@ -62,6 +62,10 @@
       register: security_group
     - debug:
         msg: "{{security_group}}"
+    - ec2_vpc_igw:
+        vpc_id: "{{vpc.vpc.id}}"
+        region: "{{aws_region}}"
+        state: present
     - rds:
         command: create
         publicly_accessible: yes
