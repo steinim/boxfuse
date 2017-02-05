@@ -30,6 +30,9 @@
         state: absent
         vpc_id: "{{ subnet_facts.subnets[0].vpc_id }}"        
         cidr: 10.0.1.0/24
+    - rds_subnet_group:
+        state: absent
+        name: boxfuse-db-subnet-group
     - ec2_vpc_net:
         name: "boxfuse_vpc"
         cidr_block: 10.0.0.0/16
