@@ -7,14 +7,31 @@
     - rds:
         command: delete
         instance_name: "{{db_name}}"
-        aws_access_key: "{{aws_access_key}}"
-        aws_secret_key: "{{aws_secret_key}}"
         region: "{{aws_region}}"
     - ec2_group:
         name: boxfuse_db_security_group
         description: boxfuse db security group
-        vpc_id: "{{vpc_id}}"
         region: "{{aws_region}}"
-        aws_access_key: "{{aws_access_key}}"
-        aws_secret_key: "{{aws_secret_key}}"
+        state: absent
+    - ec2_vpc_net:
+        name: "boxfuse_vpc"
+        cidr_block: 10.0.1.0/24
+        region: "{{aws_region}}"
+        state: absent
+    - ec2_vpc_subnet_facts:
+        region: "{{aws_region}}"
+        filters:
+          "tag:Name": boxfuse_vpc_subnet
+      register: subnet_facts
+    - debug:
+        msg: "{{ subnet_facts }}"
+    - ec2_vpc_subnet:
+        region: "{{aws_region}}"
+        state: absent
+        vpc_id: "{{ subnet_facts.subnets[0].vpc_id }}"        
+        cidr: 10.0.1.0/24
+    - ec2_vpc_net:
+        name: "boxfuse_vpc"
+        cidr_block: 10.0.0.0/16
+        region: "{{aws_region}}"
         state: absent

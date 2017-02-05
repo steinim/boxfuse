@@ -1,16 +1,59 @@
 ---
 - hosts: localhost
   gather_facts: no
+  vars_files:
+    - group_vars/vault.yml
   vars:
     ansible_python_interpreter: "/usr/bin/env python"
   tasks:
+    - ec2_vpc_net:
+        name: "boxfuse_vpc"
+        cidr_block: 10.0.0.0/16
+        region: "{{aws_region}}"
+        multi_ok: no
+        state: present
+      register: vpc
+    - debug:
+        msg: "{{vpc}}"
+    - ec2_vpc_subnet:
+        region: "{{aws_region}}"
+        state: present
+        vpc_id: "{{ vpc.vpc.id }}"
+        cidr: 10.0.1.0/24
+        az: "{{aws_region}}a"
+        resource_tags:
+          Name: boxfuse_vpc_subnet1
+      register: subnet1
+    - debug:
+        msg: "{{subnet1}}"
+    - ec2_vpc_subnet:
+        region: "{{aws_region}}"
+        state: present
+        vpc_id: "{{ vpc.vpc.id }}"
+        cidr: 10.0.2.0/24
+        az: "{{aws_region}}b"
+        resource_tags:
+          Name: boxfuse_vpc_subnet2
+      register: subnet2
+    - debug:
+        msg: "{{subnet2}}"
+    - rds_subnet_group:
+        state: present
+        name: boxfuse-db-subnet-group
+        description: DB subnet group
+        region: "{{aws_region}}"
+        subnets:
+          - "{{subnet1.subnet.id}}"
+          - "{{subnet2.subnet.id}}"
+      register: db_subnet_group
+    - debug:
+        msg: "{{db_subnet_group}}"
     - ec2_group:
         name: boxfuse_db_security_group
-        description: boxfuse db security group
-        vpc_id: "{{vpc_id}}"
+        description: Boxfuse DB security group
+        vpc_id: "{{vpc.vpc.id}}"
         region: "{{aws_region}}"
-        aws_access_key: "{{aws_access_key}}"
-        aws_secret_key: "{{aws_secret_key}}"
+        state: present
         rules:
           - proto: tcp
             from_port: 3306
@@ -18,9 +61,8 @@
             cidr_ip: 0.0.0.0/0
       register: security_group
     - debug:
-        msg: "{{security_group.group_id}}"
+        msg: "{{security_group}}"
     - rds:
-        publicly_accessible: yes
         command: create
         instance_name: "{{db_name}}"
         db_engine: MySQL
@@ -29,9 +71,8 @@
         instance_type: db.t2.micro
         username: root
         password: "{{db_root_password}}"
-        aws_access_key: "{{aws_access_key}}"
-        aws_secret_key: "{{aws_secret_key}}"
         region: "{{aws_region}}"
+        subnet: "boxfuse-db-subnet-group"
         vpc_security_groups: "{{security_group.group_id}}"
         tags:
           Environment: boxfuse
@@ -39,14 +80,12 @@
     - rds:
         command: facts
         instance_name: "{{db_name}}"
-        aws_access_key: "{{aws_access_key}}"
-        aws_secret_key: "{{aws_secret_key}}"
         region: "{{aws_region}}"
       register: rds
     - debug:
         msg: "{{item}}"
       with_items:
-        - "'id: {{rds.instance.vpc_security_groups}}'"
+        - "'id: {{rds.instance.id}}'"
         - "'endpoint: {{rds.instance.endpoint}}'"
         - "'port: {{rds.instance.port}}'"
         - "'status:  {{rds.instance.status}}'"
