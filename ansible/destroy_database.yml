@@ -8,6 +8,10 @@
         command: delete
         instance_name: "{{db_name}}"
         region: "{{aws_region}}"
+    - rds_subnet_group:
+        state: absent
+        name: boxfuse-db-subnet-group
+        region: "{{aws_region}}"
     - ec2_group:
         name: boxfuse_db_security_group
         description: boxfuse db security group
@@ -21,18 +25,27 @@
     - ec2_vpc_subnet_facts:
         region: "{{aws_region}}"
         filters:
-          "tag:Name": boxfuse_vpc_subnet
-      register: subnet_facts
+          "tag:Name": boxfuse_vpc_subnet1
+      register: subnet1_facts
     - debug:
-        msg: "{{ subnet_facts }}"
+        msg: "{{ subnet1_facts }}"
     - ec2_vpc_subnet:
         region: "{{aws_region}}"
         state: absent
-        vpc_id: "{{ subnet_facts.subnets[0].vpc_id }}"        
+        vpc_id: "{{ subnet1_facts.subnets[0].vpc_id }}"
         cidr: 10.0.1.0/24
-    - rds_subnet_group:
+    - ec2_vpc_subnet_facts:
+        region: "{{aws_region}}"
+        filters:
+          "tag:Name": boxfuse_vpc_subnet2
+      register: subnet2_facts
+    - debug:
+        msg: "{{ subnet2_facts }}"
+    - ec2_vpc_subnet:
+        region: "{{aws_region}}"
         state: absent
-        name: boxfuse-db-subnet-group
+        vpc_id: "{{ subnet2_facts.subnets[0].vpc_id }}"        
+        cidr: 10.0.2.0/24
     - ec2_vpc_net:
         name: "boxfuse_vpc"
         cidr_block: 10.0.0.0/16

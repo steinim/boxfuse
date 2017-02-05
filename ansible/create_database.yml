@@ -64,6 +64,7 @@
         msg: "{{security_group}}"
     - rds:
         command: create
+        publicly_accessible: yes
         instance_name: "{{db_name}}"
         db_engine: MySQL
         size: 5
