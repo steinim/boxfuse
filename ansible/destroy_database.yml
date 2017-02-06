@@ -34,6 +34,7 @@
         state: absent
         vpc_id: "{{ subnet1_facts.subnets[0].vpc_id }}"
         cidr: 10.0.1.0/24
+      when: subnet1_facts.subnets|length > 0
     - ec2_vpc_subnet_facts:
         region: "{{aws_region}}"
         filters:
@@ -46,6 +47,18 @@
         state: absent
         vpc_id: "{{ subnet2_facts.subnets[0].vpc_id }}"        
         cidr: 10.0.2.0/24
+      when: subnet1_facts.subnets|length > 0
+    - ec2_vpc_net_facts:
+        region: "{{aws_region}}"
+        filters:
+          "tag:Name": boxfuse_vpc
+      register: vpc_facts
+    - debug:
+        msg: "{{ vpc_facts }}"
+    - ec2_vpc_igw:
+        vpc_id: "{{vpc_facts.vpcs[0].id}}"
+        region: "{{aws_region}}"
+        state: absent
     - ec2_vpc_net:
         name: "boxfuse_vpc"
         cidr_block: 10.0.0.0/16
