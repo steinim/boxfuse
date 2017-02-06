@@ -6,7 +6,8 @@
   vars:
     ansible_python_interpreter: "/usr/bin/env python"
   tasks:
-    - ec2_vpc_net:
+    - name: Create VPC
+      ec2_vpc_net:
         name: "boxfuse_vpc"
         cidr_block: 10.0.0.0/16
         region: "{{aws_region}}"
@@ -15,7 +16,8 @@
       register: vpc
     - debug:
         msg: "{{vpc}}"
-    - ec2_vpc_subnet:
+    - name: Create Subnet 1
+      ec2_vpc_subnet:
         region: "{{aws_region}}"
         state: present
         vpc_id: "{{ vpc.vpc.id }}"
@@ -26,7 +28,8 @@
       register: subnet1
     - debug:
         msg: "{{subnet1}}"
-    - ec2_vpc_subnet:
+    - name: Create Subnet 2
+      ec2_vpc_subnet:
         region: "{{aws_region}}"
         state: present
         vpc_id: "{{ vpc.vpc.id }}"
@@ -37,7 +40,8 @@
       register: subnet2
     - debug:
         msg: "{{subnet2}}"
-    - rds_subnet_group:
+    - name: Create RDS subnet group
+      rds_subnet_group:
         state: present
         name: boxfuse-db-subnet-group
         description: DB subnet group
@@ -48,7 +52,8 @@
       register: db_subnet_group
     - debug:
         msg: "{{db_subnet_group}}"
-    - ec2_group:
+    - name: Create DB security group
+      ec2_group:
         name: boxfuse_db_security_group
         description: Boxfuse DB security group
         vpc_id: "{{vpc.vpc.id}}"
@@ -62,11 +67,26 @@
       register: security_group
     - debug:
         msg: "{{security_group}}"
-    - ec2_vpc_igw:
+    - name: Create Internet gateway
+      ec2_vpc_igw:
         vpc_id: "{{vpc.vpc.id}}"
         region: "{{aws_region}}"
         state: present
-    - rds:
+      register: igw
+    - name: Create public route table
+      ec2_vpc_route_table:
+        vpc_id: "{{vpc.vpc.id}}"
+        region: "{{aws_region}}"
+        tags:
+          Name: Boxfuse public route table
+        subnets:
+          - "{{subnet1.subnet.id}}"
+          - "{{subnet2.subnet.id}}"
+        routes:
+          - dest: 0.0.0.0/0
+            gateway_id: "{{ igw.gateway_id }}"
+    - name: Create RDS
+      rds:
         command: create
         publicly_accessible: yes
         instance_name: "{{db_name}}"
@@ -97,16 +117,23 @@
         - "'instance_type: {{rds.instance.instance_type}}'"
         - "'vpc_security_groups: {{rds.instance.vpc_security_groups}}'"
         - "'availability_zone: {{rds.instance.availability_zone}}'"
-    - pip:
+    - name: Install MySQL-python
+      pip:
         name: MySQL-python
-    - homebrew: name=mysql
-    - mysql_db:
+    - name: Install mysql
+      homebrew: name=mysql
+    - name: Wait for RDS availability
+      shell: bin/wait_for_rds_availability.sh
+      changed_when: False
+    - name: Create database
+      mysql_db:
         name: "{{db_name}}"
         login_host: "{{rds.instance.endpoint}}"
         login_user: root
         login_password: "{{db_root_password}}"
       when: rds.instance.status == "available"
-    - mysql_user:
+    - name: Create database user
+      mysql_user:
         name: "{{db_user}}"
         password: "{{db_user_password}}"
         host: "%"
